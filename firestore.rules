@@ -1,0 +1,100 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // --- User Profile ---
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.uid == request.auth.uid 
+            && data.email is string 
+            && data.email.size() <= 256;
+      }
+
+      allow get: if isSignedIn();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data)
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL', 'favorites', 'role']);
+    }
+
+    // --- Kiosks ---
+    match /kiosks/{kioskId} {
+      function isValidKiosk(data) {
+        return data.ownerId == request.auth.uid
+            && data.title is string && data.title.size() <= 200
+            && data.price is number && data.price >= 0
+            && data.location.lat is number
+            && data.location.lng is number;
+      }
+
+      allow list, get: if true; // Public listings
+      allow create: if isVerified() && isValidKiosk(request.resource.data);
+      allow update: if isVerified() 
+                    && resource.data.ownerId == request.auth.uid
+                    && isValidKiosk(request.resource.data)
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'description', 'price', 'address', 'photos', 'facilities', 'status', 'strategicData', 'updatedAt']);
+      allow delete: if isVerified() && resource.data.ownerId == request.auth.uid;
+    }
+
+    // --- Bookings ---
+    match /bookings/{bookingId} {
+      function isValidBooking(data) {
+        return data.tenantId == request.auth.uid
+            && data.ownerId is string
+            && data.kioskId is string
+            && data.surveyDate is string;
+      }
+
+      allow list: if isSignedIn() && (resource.data.tenantId == request.auth.uid || resource.data.ownerId == request.auth.uid);
+      allow get: if isSignedIn() && (resource.data.tenantId == request.auth.uid || resource.data.ownerId == request.auth.uid);
+      allow create: if isVerified() && isValidBooking(request.resource.data);
+      allow update: if isVerified() 
+                    && (resource.data.tenantId == request.auth.uid || resource.data.ownerId == request.auth.uid)
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'surveyDate', 'message']);
+    }
+
+    // --- Reviews ---
+    match /reviews/{reviewId} {
+      function isValidReview(data) {
+        return data.tenantId == request.auth.uid
+            && data.rating is number && data.rating >= 1 && data.rating <= 5
+            && data.kioskId is string;
+      }
+
+      allow list, get: if true;
+      allow create: if isVerified() && isValidReview(request.resource.data);
+      allow update, delete: if isVerified() && resource.data.tenantId == request.auth.uid;
+    }
+
+    // --- Chats ---
+    match /chats/{chatId}/messages/{messageId} {
+      function canChat(participants) {
+        return request.auth.uid in participants;
+      }
+
+      // Note: chats collection root needs rules if checking participants
+      // Since it's a subcollection, we assume chatId contains participant info or we use a separate chats doc
+    }
+  }
+}

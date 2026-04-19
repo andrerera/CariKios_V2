@@ -1,0 +1,6 @@
+{
+  "name": "CariKios",
+  "description": "Marketplace sewa kios dengan informasi lokasi strategis, integrasi Google Maps, dan transparansi harga.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": []
+}

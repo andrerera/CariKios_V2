@@ -1,0 +1,121 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["tenant", "owner"] },
+        "favorites": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Kiosk": {
+      "title": "Kiosk",
+      "description": "Kiosk listing details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "address": { "type": "string" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "photos": { "type": "array", "items": { "type": "string" } },
+        "facilities": { "type": "array", "items": { "type": "string" } },
+        "status": { "type": "string", "enum": ["available", "rented"] },
+        "strategicData": {
+          "type": "object",
+          "properties": {
+            "traffic": { "type": "string" },
+            "density": { "type": "string" },
+            "proximity": { "type": "array", "items": { "type": "string" } },
+            "analysis": { "type": "string" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "title", "price", "location"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "Survei booking to a kiosk",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "kioskId": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "cancelled"] },
+        "surveyDate": { "type": "string", "format": "date-time" },
+        "message": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["kioskId", "tenantId", "ownerId", "surveyDate"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Tenant review for a kiosk",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "kioskId": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "tenantName": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["kioskId", "tenantId", "rating"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Direct chat message",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "chatId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["senderId", "receiverId", "text"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/kiosks/{kioskId}": {
+      "schema": "Kiosk",
+      "description": "Kiosk listings"
+    },
+    "/bookings/{bookingId}": {
+      "schema": "Booking",
+      "description": "Tour/survey bookings"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Kiosk reviews"
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Chat messages"
+    }
+  }
+}
