@@ -1,30 +1,23 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-
-// Fallback dummy config if the real one isn't provisioned yet
-const dummyConfig = {
-  apiKey: "dummy",
-  authDomain: "dummy.firebaseapp.com",
-  projectId: "dummy",
-  storageBucket: "dummy.appspot.com",
-  messagingSenderId: "000000",
-  appId: "000000",
-  firestoreDatabaseId: "(default)"
-};
-
-let firebaseConfig = dummyConfig;
-
-try {
-  // @ts-ignore - this file might not exist yet
-  import('../../firebase-applet-config.json').then(config => {
-    firebaseConfig = config.default;
-  });
-} catch (e) {
-  console.warn("Firebase config not found, using dummy. Please run setup again.");
-}
+import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const googleProvider = new GoogleAuthProvider();
+
+// Connection test as per system instructions
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error("Please check your Firebase configuration: client is offline.");
+    } else {
+      console.warn("Initial connection test note:", error);
+    }
+  }
+}
+testConnection();
